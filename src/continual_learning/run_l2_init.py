@@ -5,17 +5,10 @@ import wandb
 from tqdm import tqdm
 import numpy as np
 import torch
-from torch import nn
 
 from src.common.utils import freeze_seed, build_model, test_model
+from src.common.interventions import l2_init_regularization
 from src.continual_learning import get_dataloader
-
-
-def l2_init_regularization(source_model: nn.Module, target_model: nn.Module):
-    loss = 0
-    for src_param, tar_param in zip(source_model.parameters(), target_model.parameters()):
-        loss += torch.sum((src_param - tar_param.data) ** 2)
-    return loss
 
 
 def main(args):

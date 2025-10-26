@@ -4,17 +4,10 @@ import wandb
 from tqdm import tqdm
 import numpy as np
 import torch
-from torch import nn
 
 from src.common.utils import freeze_seed, build_model, test_model
+from src.common.interventions import l2_regularization
 from src.continual_learning import get_dataloader
-
-
-def l2_regularization(model: nn.Module):
-    loss = 0
-    for param in model.parameters():
-        loss += torch.sum(param ** 2)
-    return loss
 
 
 def main(args):

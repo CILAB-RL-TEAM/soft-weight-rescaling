@@ -6,13 +6,8 @@ import numpy as np
 import torch
 
 from src.common.utils import freeze_seed, build_model, test_model
+from src.common.interventions import shrink_and_perturb
 from src.continual_learning import get_dataloader
-
-
-def shrink_and_perturb(model: nn.Module, init_model: nn.Module, shrink_coef: float):
-    with torch.no_grad():
-        for param, init_param in zip(model.parameters(), init_model.parameters()):
-            param.data = (1 - shrink_coef) * param.data.clone() + shrink_coef * init_param.data.clone()
 
 
 def main(args):
@@ -46,6 +41,10 @@ def main(args):
     global_step = 0
     for chunk in range(args.n_chunks):
         trainloader = trainloaders[chunk]
+
+        # Intervention: shrink and perturb
+        if chunk > 0:
+            shrink_and_perturb(model, args.coef)
 
         pbar = tqdm(range(args.n_epochs), leave=True)
         for epoch in pbar:
@@ -95,7 +94,6 @@ if __name__ == "__main__":
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--coef", type=float, default=0.8)
-    parser.add_argument("--reinit", action='store_true')
     parser.add_argument("--use_wandb", action='store_true')
     parser.add_argument('--wandb_entity', type=str, default='Plasticity')
     parser.add_argument('--wandb_project', type=str, default='soft_weight_rescaling')

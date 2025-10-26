@@ -4,32 +4,10 @@ import wandb
 from tqdm import tqdm
 import numpy as np
 import torch
-from torch import nn
 
 from src.common.utils import freeze_seed, build_model, test_model
+from src.common.interventions import get_weight_norms, soft_weight_rescaling
 from src.continual_learning import get_dataloader
-
-
-@torch.no_grad()
-def get_weight_norms(model: nn.Module):
-    weight_norms = {}
-    for name, param in model.named_parameters():
-        if 'weight' in name or 'bias' in name:
-            weight_norms[name] = torch.norm(param.data).item()
-    return weight_norms
-
-
-def soft_weight_rescaling(model: nn.Module, init_weight_norm: dict, coef: float):
-    cum_c = 1.0
-    with torch.no_grad():
-        for name, param in model.named_parameters():
-            if 'weight' in name:
-                curr_norm = torch.norm(param.data)
-                c = coef * init_weight_norm[name] / curr_norm + (1 - coef)
-                param.data.mul_(c)
-                cum_c *= c
-            elif 'bias' in name:
-                param.data.mul_(cum_c)
 
 
 def main(args):
