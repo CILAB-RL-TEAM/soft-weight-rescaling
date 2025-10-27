@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+from src.common.models import MLP, CNN, CNN_BN, VGG16
+
 
 # ----- Full Reset -----
 
@@ -16,8 +18,19 @@ def full_reset(model: torch.nn.Module, init_model: torch.nn.Module):
 
 @torch.no_grad()
 def head_reset(model: torch.nn.Module, init_model: torch.nn.Module):
-    # TODO: implement here
-    pass
+    if isinstance(model, MLP):
+        model.fc3.weight.data = init_model.fc3.weight.data.clone()
+        model.fc3.bias.data = init_model.fc3.bias.data.clone()
+    elif isinstance(model, (CNN, CNN_BN)):
+        model.fc1.weight.data = init_model.fc1.weight.data.clone()
+        model.fc1.bias.data = init_model.fc1.bias.data.clone()
+        model.fc2.weight.data = init_model.fc2.weight.data.clone()
+        model.fc2.bias.data = init_model.fc2.bias.data.clone()
+    elif isinstance(model, VGG16):
+        # TODO: implement here
+        pass
+    else:
+        raise ValueError(f"Unsupported model: {type(model)}")
 
 
 # ----- L2 Regularization -----
