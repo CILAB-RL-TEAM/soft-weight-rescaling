@@ -31,7 +31,7 @@ def main(args):
     wandb.init(
         project=args.wandb_project,
         entity=args.wandb_entity,
-        name=f'vanilla',
+        name=f'swr-{args.feature_extractor_coef}-{args.classifier_coef}',
         group=f'generalization',
         config=vars(args),
         mode="online" if args.use_wandb else "disabled",
@@ -58,7 +58,7 @@ def main(args):
         # Train model one epoch
         for i, (inputs, labels) in enumerate(trainloader, 0):
             if global_step > 0:
-                soft_weight_rescaling(model, init_weight_norm, args.coef)
+                soft_weight_rescaling(model, init_weight_norm, args.feature_extractor_coef, args.classifier_coef)
 
             # forward
             inputs, labels = inputs.to(device), labels.to(device)
@@ -97,7 +97,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--n_epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--coef", type=float, default=1e-2)
+    parser.add_argument("--feature_extractor_coef", type=float, default=1e-3)
+    parser.add_argument("--classifier_coef", type=float, default=1e-3)
     parser.add_argument("--reinit", action='store_true')
     parser.add_argument("--use_wandb", action='store_true')
     parser.add_argument('--wandb_entity', type=str, default='Plasticity')

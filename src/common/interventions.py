@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import nn
 
@@ -74,14 +75,80 @@ def get_weight_norms(model: nn.Module):
     return weight_norms
 
 
-def soft_weight_rescaling(model: nn.Module, init_weight_norm: dict, coef: float):
-    cum_c = 1.0
-    with torch.no_grad():
+@torch.no_grad()
+def soft_weight_rescaling(
+    model: nn.Module,
+    init_weight_norm: dict,
+    feature_extractor_coef: float,
+    classifier_coef: float,
+):
+    cs = [1.0]
+    if isinstance(model, MLP):
         for name, param in model.named_parameters():
             if 'weight' in name:
-                curr_norm = torch.norm(param.data)
+                if 'fc1' in name or 'fc2' in name:
+                    coef = feature_extractor_coef
+                elif 'fc3' in name:
+                    coef = classifier_coef
+                else:
+                    raise ValueError(f"Unknown layer type in parameter name: {name}")
+
+                # Rescale weights
+                curr_norm = param.data.norm().item()
                 c = coef * init_weight_norm[name] / curr_norm + (1 - coef)
                 param.data.mul_(c)
-                cum_c *= c
+                cs.append(c)
             elif 'bias' in name:
+                # Rescale bias with cumulative scaler
+                cum_c = np.prod(cs).item()
                 param.data.mul_(cum_c)
+    elif isinstance(model, CNN):
+        for name, param in model.named_parameters():
+            if 'weight' in name:
+                if 'fc' in name:
+                    coef = feature_extractor_coef
+                elif 'conv' in name:
+                    coef = classifier_coef
+                else:
+                    raise ValueError(f"Unknown layer type in parameter name: {name}")
+
+                # Rescale weights
+                curr_norm = param.data.norm().item()
+                c = coef * init_weight_norm[name] / curr_norm + (1 - coef)
+                param.data.mul_(c)
+                cs.append(c)
+            elif 'bias' in name:
+                # Rescale bias with cumulative scaler
+                cum_c = np.prod(cs).item()
+                param.data.mul_(cum_c)
+    elif isinstance(model, CNN_BN):
+        for name, param in model.named_parameters():
+            if 'weight' in name:
+                if 'fc' in name:
+                    coef = feature_extractor_coef
+                elif 'conv' in name:
+                    coef = classifier_coef
+                elif 'bn' in name:
+                    coef = classifier_coef
+                else:
+                    raise ValueError(f"Unknown layer type in parameter name: {name}")
+
+                # Rescale weights
+                curr_norm = param.data.norm().item()
+                c = coef * init_weight_norm[name] / curr_norm + (1 - coef)
+                param.data.mul_(c)
+
+                # Cumulate scalers from last normalization layer
+                if 'bn2' in name or 'fc' in name:
+                    cs.append(c)
+                else:
+                    cs = [c]
+            elif 'bias' in name:
+                # Rescale bias with cumulative scaler
+                cum_c = np.prod(cs).item()
+                param.data.mul_(cum_c)
+    elif isinstance(model, VGG16):
+        # TODO: implement here
+        pass
+    else:
+        raise ValueError(f"Unsupported model: {type(model)}")
