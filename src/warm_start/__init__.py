@@ -92,7 +92,7 @@ def get_dataloader(dataset: str, warm_start_ratio: float, batch_size: int):
     else:
         raise ValueError(f"Unsupported dataset: {dataset}")
 
-    pretrainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
+    posttrainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False)
 
     # Create warm-start subset
@@ -100,6 +100,6 @@ def get_dataloader(dataset: str, warm_start_ratio: float, batch_size: int):
         subset_size = int(len(trainset) * warm_start_ratio)
         subset_indices = torch.randperm(len(trainset))[:subset_size]
         trainset = torch.utils.data.Subset(trainset, subset_indices)
-    posttrainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
+    pretrainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
 
     return pretrainloader, posttrainloader, testloader
